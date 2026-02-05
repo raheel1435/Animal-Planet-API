@@ -270,4 +270,3 @@ It is designed for learning purposes, clarity, and assignment submission.
 
 this repo "https://github.com/raheel1435/Animal-Planet-with-API.git (for git clone)"
 "https://raheel1435.github.io/Animal-Planet-with-API/  (to view webpage)" is running on the same API.
-to test the results user need to connect the mongodb and also need to run server in terminal by "npm start" command.
