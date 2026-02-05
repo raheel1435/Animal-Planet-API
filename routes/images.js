@@ -245,7 +245,7 @@ router.put("/:id", async (req, res) => {
                         type: req.body.type,
                         description: req.body.description,
                         color: req.body.color,
-                        lifespan: req.body.lifespan
+                        lifespan: req.body.ilfespan
                     }
                 }
             );
