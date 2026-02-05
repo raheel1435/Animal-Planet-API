@@ -243,7 +243,9 @@ router.put("/:id", async (req, res) => {
                     $set: {
                         name: req.body.name,
                         type: req.body.type,
-                        description: req.body.description
+                        description: req.body.description,
+                        color: req.body.color,
+                        lifespan: req.body.lifespan
                     }
                 }
             );
