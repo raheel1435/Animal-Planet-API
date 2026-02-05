@@ -103,7 +103,7 @@ router.post("/", upload.single("image"), async (req, res) => {
             description: req.body.description, // Description text
             color: req.body.color || "",       // Optional field
             lifeSpan: req.body.lifeSpan || "", // Optional field
-
+            
             /*
             Image file path saved in DB
             This path is used later to display the image
@@ -245,7 +245,7 @@ router.put("/:id", async (req, res) => {
                         type: req.body.type,
                         description: req.body.description,
                         color: req.body.color,
-                        lifespan: req.body.ilfespan
+                        lifespan: req.body.lifespan
                     }
                 }
             );
