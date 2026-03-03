@@ -270,3 +270,64 @@ It is designed for learning purposes, clarity, and assignment submission.
 
 this repo "https://github.com/raheel1435/Animal-Planet-with-API.git (for git clone)"
 "https://raheel1435.github.io/Animal-Planet-with-API/  (to view webpage)" is running on the same API.
+
+
+
+🎯Status Code Matrix (Final)
+
+on testing, this API should behave like this.
+
+✅ POST
+
+POST /api/images
+
+Returns 201
+
+Returns 400 if file missing
+
+✔ Requirement fulfilled.
+
+✅ GET
+
+GET /api/images → 200
+
+GET /api/images/:id (exists) → 200
+
+GET /api/images/:id (not exists) → 404
+
+GET /api/images/:id (invalid format) → 400
+
+✔ Correct REST semantics.
+
+✅ PUT
+
+You tested three distinct cases:
+
+Existing valid ID → 200
+
+Invalid ID format (e.g., 123) → 400
+
+Valid format but not in DB → 201
+
+That is exactly what the assignment required:
+
+200 for update
+
+201 for creation (RFC compliant)
+
+400 for invalid ID
+
+✔ Requirement fulfilled.
+
+🎯 Status Code Matrix (Final)
+Scenario	          Expected	Your Result
+POST valid	          201	       ✅
+POST no file	        400	       ✅
+GET all       	      200	       ✅
+GET existing	        200	       ✅
+GET not found  	      404	       ✅
+PUT existing  	      200	       ✅
+PUT new valid ID	    201	     ✅
+PUT invalid ID	      400	       ✅
+
+Everything aligns.

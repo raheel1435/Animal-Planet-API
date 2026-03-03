@@ -1,272 +1,148 @@
-// ==============================
-// IMPORTS
-// ==============================
-
 import express from "express";      
-// Express is a Node.js framework used to build APIs and web servers.
-// Here, we use it to define routes like GET, POST, PUT, etc.
-
 import multer from "multer";        
-// Multer is middleware used to handle file uploads (images, files, etc.).
-// It processes multipart/form-data coming from forms or Postman.
-
 import { db } from "../server.js";  
-// Import the MongoDB database connection created in server.js.
-// This allows this file to talk to the database.
-
 import { ObjectId } from "mongodb"; 
-// ObjectId is a MongoDB-specific data type.
-// MongoDB stores document IDs as ObjectId, NOT as plain strings.
-// We must convert string IDs into ObjectId before querying.
-
-
-// ==============================
-// ROUTER SETUP
-// ==============================
 
 const router = express.Router();    
-// A router is like a mini version of `app`.
-// It helps organize routes into separate files.
 
-
-// ==============================
-// MULTER CONFIGURATION
-// ==============================
-
-/*
-This block configures HOW uploaded files are stored.
-
-Two things are defined:
-1. destination → where files will be saved
-2. filename    → how files will be named
-*/
-
+// Multer configuration for file storage
 const storage = multer.diskStorage({
-
-    // Folder where uploaded files will be stored
     destination: "uploads/",
-
-    /*
-    filename function decides the name of the uploaded file.
-
-    Parameters:
-    - req  → request object
-    - file → uploaded file info
-    - cb   → callback function (used to return the filename)
-    */
     filename: (req, file, cb) => {
-
-        /*
-        cb(error, filename)
-
-        - null means "no error"
-        - Date.now() ensures unique filenames
-        - file.originalname keeps the original filename
-        */
         cb(null, Date.now() + "-" + file.originalname);
     }
 });
 
-// Create Multer middleware using the above storage rules
 const upload = multer({ storage });
 
-
-// ==============================
-// POST /api/images
-// ==============================
-
-/*
-PURPOSE:
-- Upload an image file
-- Save image metadata in MongoDB
-
-FLOW:
-Client (Postman / HTML form)
-→ Express
-→ Multer (stores file)
-→ MongoDB (stores data)
-*/
-
+// Post route to handle image upload and metadata saving
 router.post("/", upload.single("image"), async (req, res) => {
-    /*
-    upload.single("image"):
-    - Tells Multer to expect ONE file
-    - The file field name must be "image"
-    - The uploaded file becomes available as req.file
-    */
-
     try {
-        // Create an object that will be stored as a MongoDB document
-        const imageData = {
-            name: req.body.name,               // Text field from form
-            type: req.body.type,               // Animal type
-            description: req.body.description, // Description text
-            color: req.body.color || "",       // Optional field
-            lifeSpan: req.body.lifeSpan || "", // Optional field
-            
-            /*
-            Image file path saved in DB
-            This path is used later to display the image
-            */
-            imagePath: `/uploads/${req.file.filename}`,
+        if (!req.file) {
+            return res.status(400).json({ message: "No file Uploaded" });
+        }
 
-            // Timestamp when document is created
+        const imageData = {
+            name: req.body.name,               
+            type: req.body.type,               
+            description: req.body.description, 
+            color: req.body.color || "",       
+            lifeSpan: req.body.lifeSpan || "",  
+            imagePath: `/uploads/${req.file.filename}`,
             createdAt: new Date()
         };
 
-        /*
-        insertOne():
-        - MongoDB method
-        - Inserts ONE document into the "images" collection
-        - Returns a Promise
-        */
         const result = await db
-            .collection("images")  // Select "images" collection
-            .insertOne(imageData); // Insert the document
+            .collection("images")  
+            .insertOne(imageData);
 
-        /*
-        result looks like:
-        {
-          acknowledged: true,
-          insertedId: ObjectId("...")
-        }
-        */
-
-        res.status(201).json(result); // Send success response
+        return res.status(201).json({
+            message: "Image Created",
+            id: result.insertedId
+        });
 
     } catch (err) {
-        // If any error happens, send error message
         res.status(500).json({ message: err.message });
     }
 });
 
-
-// ==============================
-// GET /api/images
-// ==============================
-
-/*
-PURPOSE:
-- Fetch ALL images from MongoDB
-*/
+// Get all images
 
 router.get("/", async (req, res) => {
     try {
-        /*
-        find():
-        - Fetches documents
-        - Returns a cursor (not actual data yet)
-
-        toArray():
-        - Converts cursor into an array
-        */
         const images = await db
             .collection("images")
             .find()
             .toArray();
 
-        res.json(images); // Send array of images
-
+         return res.status(200).json(images); 
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        return res.status(500).json({ message: err.message });
     }
 });
 
-
-// ==============================
-// GET /api/images/:id
-// ==============================
-
-/*
-PURPOSE:
-- Fetch ONE image by its MongoDB ID
-*/
+// Get single image by ID
 
 router.get("/:id", async (req, res) => {
     try {
-        /*
-        req.params.id:
-        - Value taken from the URL
-        Example:
-        /api/images/65abc123
-        req.params.id === "65abc123"
-        */
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid ID format" });
+        }
 
         const image = await db
             .collection("images")
             .findOne({
-                _id: new ObjectId(req.params.id) // Convert string → ObjectId
+                _id: new ObjectId(req.params.id) 
             });
-
-        // If no document is found
+            
         if (!image) {
             return res.status(404).json({ message: "Image not found" });
         }
 
-        res.json(image); // Send image data
+        return res.status(200).json(image);
 
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        return res.status(500).json({ message: err.message });
     }
 });
 
-
-// ==============================
-// PUT /api/images/:id
-// ==============================
-
-/*
-PURPOSE:
-- Update text data of an image
-- DOES NOT update the image file itself
-*/
+// Put route to Update or Create (RFC2616)
 
 router.put("/:id", async (req, res) => {
     try {
-        /*
-        updateOne():
-        - Updates ONE document
-        - Takes TWO arguments:
-          1. Filter → which document
-          2. Update → what to change
-        */
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid ID format" });
+        }
 
-        const result = await db
-            .collection("images")
-            .updateOne(
+        const id = new ObjectId(req.params.id);
 
-                // FILTER: which document to update
-                { _id: new ObjectId(req.params.id) },
+        const updateData = {
+            name: req.body?.name || "",
+            type: req.body?.type || "",
+            description: req.body?.description || "",
+            color: req.body?.color || "",
+            lifeSpan: req.body?.lifeSpan || ""
+        };
 
-                // UPDATE: what fields to change
-                {
-                    $set: {
-                        name: req.body.name,
-                        type: req.body.type,
-                        description: req.body.description,
-                        color: req.body.color,
-                        lifespan: req.body.lifespan
-                    }
-                }
-            );
+        const result = await db.collection("images").updateOne(
+            { _id: id },
+            { $set: updateData },
+            { upsert: true }
+        );
 
-        /*
-        result contains:
-        - matchedCount
-        - modifiedCount
-        */
+        // if document was created
+        if (result.upsertedCount === 1) {
+            return res.status(201).json({ message: "Image created" });
+        }
 
-        res.json(result); // Send update result
+        // if document was updated
+        return res.status(200).json({ message: "Image updated" });
 
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        return res.status(500).json({ message: err.message });
     }
 });
 
+// Delete Remove images
 
-// ==============================
-// EXPORT ROUTER
-// ==============================
+router.delete("/:id", async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid ID format" });
+        }
+
+        const result = await db.collection("images").deleteOne({
+            _id: new ObjectId(req.params.id)
+        });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: "Image not found" });
+        }
+
+        return res.status(200).json({ message: "Image deleted" });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });      
+    }
+});
 
 export default router;
-// This allows server.js to use these routes
